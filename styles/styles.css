@@ -1,0 +1,164 @@
+/* =============================================================================
+ * Longitude/Latitude Demonstrator -- sim-specific styles ONLY.
+ * Shared palette, layout grid, panels, controls come from foundation/kl-unl.css.
+ * Nothing here edits or forks the foundation files.
+ * ===========================================================================*/
+
+/* Comfortably large, zoomable body copy (>= 1.125rem floor), sized in rem. */
+.app-layout,
+.app-layout .panel__heading,
+.app-layout .control-fieldset__legend,
+.app-layout label,
+.app-layout output,
+.app-layout .panel__help {
+  font-size: 1.125rem;
+  line-height: 1.45;
+}
+
+.app-layout .panel__heading {
+  font-size: 1.25rem;
+}
+
+/* Match the original proportions: a large globe on the left, a compact controls
+   column on the right. (Sim-specific layout, layered on the foundation grid; the
+   1-column collapse below 56rem is preserved in the media query further down.) */
+.app-layout {
+  grid-template-columns: minmax(0, 1fr) 22rem;
+  gap: 0 0.75rem;
+  align-items: stretch;     /* both panels share the same (tallest) height */
+}
+
+/* The globe panel is shorter than the controls; when stretched to equal height,
+   center the globe vertically within it (mirrors the original card layout). */
+.panel--globe {
+  justify-content: center;
+}
+
+/* Give both panels a little breathing room and equal internal rhythm. */
+.panel {
+  margin-bottom: 0.75rem;
+}
+
+/* ---- Globe panel (left column) ----------------------------------------- */
+.panel--globe .panel__canvas-wrap {
+  padding: 0.5rem 1rem 1rem;
+}
+
+.globe-wrap {
+  position: relative;       /* anchor for the floating city callout */
+  line-height: 0;
+}
+
+#globe-canvas {
+  display: block;
+  width: 100%;
+  max-width: 30rem;         /* large globe, as in the original */
+  height: auto;             /* preserve the canvas 440:400 intrinsic ratio */
+  margin: 0 auto;
+  touch-action: none;       /* dragging the globe must not scroll/zoom the page */
+  cursor: crosshair;
+}
+
+.globe-instructions {
+  font-style: italic;
+}
+
+/* Floating city callout, positioned over the globe from JS. */
+.city-callout {
+  position: absolute;
+  display: none;
+  transform: translate(0.5rem, -2.25rem);
+  padding: 0.15rem 0.5rem;
+  background: var(--background-color, #fff);
+  color: var(--foreground-color, #1a1a1a);
+  border: 1px solid #000;
+  border-radius: 3px;
+  font-size: 1rem;
+  line-height: 1.3;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 5;
+}
+
+/* ---- Controls panel (right column) ------------------------------------- */
+.controls-inner {
+  padding-bottom: 1rem;
+}
+
+/* Format radios inline (decimal / sexagesimal on one row), as in the original. */
+.format-choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.25rem;
+}
+
+/* Label / value coordinate rows: label column + right-aligned value column. */
+.coord-row {
+  grid-template-columns: 7rem 1fr;
+  align-items: baseline;
+  margin-bottom: 0.15rem;
+}
+
+.coord-readout {
+  font-variant-numeric: tabular-nums;  /* digits line up */
+  font-weight: 600;
+  text-align: left;
+}
+
+/* Sliders: full-width, comfortable touch target, consistent sizing. */
+.sim-slider {
+  width: 100%;
+  min-height: 2.75rem;        /* >= 44px touch target */
+  margin: 0.1rem 0 0.75rem;
+  accent-color: var(--button-background-color, #005a9c);
+  cursor: pointer;
+}
+
+/* Radios / checkboxes inherit foundation .control-choice sizing; just spacing. */
+.control-fieldset {
+  margin-bottom: 0.25rem;
+}
+
+.sim-button-row {
+  box-sizing: border-box;     /* keep the side padding inside the 100% width */
+  justify-content: center;    /* center the button (override space-between) */
+  padding: 0.25rem 1rem 0.75rem;
+}
+
+.sim-button-row .button {
+  font-size: 1.0625rem;       /* natural width, centered */
+}
+
+/* =========================================================================
+ *  Responsiveness below the foundation's 56rem breakpoint (phone portrait).
+ *  The foundation already collapses .app-layout to a single column at 56rem;
+ *  these rules keep the stacked layout tidy down to narrow phone widths.
+ * =======================================================================*/
+@media (max-width: 56rem) {
+  /* Collapse to a single column (preserves the foundation's 56rem behavior). */
+  .app-layout {
+    grid-template-columns: 1fr;
+  }
+  #globe-canvas {
+    max-width: 24rem;
+  }
+}
+
+@media (max-width: 30rem) {
+  .app-layout,
+  .app-layout .panel__heading,
+  .app-layout label,
+  .app-layout output {
+    font-size: 1.0625rem;     /* slightly smaller on very narrow screens */
+  }
+  .coord-row {
+    grid-template-columns: 6rem 1fr;
+  }
+  #globe-canvas {
+    max-width: 100%;
+  }
+  .controls-inner {
+    padding-left: 0;
+    padding-right: 0;
+  }
+}

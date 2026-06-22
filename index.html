@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Longitude/Latitude Demonstrator</title>
+
+  <!-- KL-UNL foundation (copied unchanged into ./foundation). These paths resolve
+       to /foundation/... when the html5/ folder is served as the server root. -->
+  <link href="foundation/kl-unl.css" type="text/css" rel="stylesheet" media="all">
+  <link href="styles/styles.css" type="text/css" rel="stylesheet" media="all">
+</head>
+<body>
+  <div class="app-shell">
+    <!-- Masthead component renders the <h1> title plus Reset / Help / About,
+         reading from foundation/contents.json by sim-id. -->
+    <kl-unl-masthead sim-id="longlat" json-url="foundation/contents.json"></kl-unl-masthead>
+
+    <main class="app-layout" id="app-layout">
+
+      <!-- LEFT: the interactive globe (the "stage"). -->
+      <section class="panel panel--globe app-layout__left" aria-labelledby="globe-heading">
+        <h2 id="globe-heading" class="sr-only">Globe</h2>
+        <div class="panel__canvas-wrap globe-wrap">
+          <canvas id="globe-canvas"
+                  width="440" height="400"
+                  role="img"
+                  aria-label="Interactive globe showing the cursor location"
+                  aria-describedby="globe-desc">
+          </canvas>
+          <!-- Floating city callout, shown over the globe on hover/focus of a city. -->
+          <div id="city-callout" class="city-callout" aria-hidden="true"></div>
+        </div>
+        <p class="panel__help globe-instructions">
+          Click on the globe to change the cursor location, or shift-click to change
+          the globe's orientation. Keyboard users can use the sliders in the controls panel.
+        </p>
+        <!-- Text equivalent of the canvas, kept in sync from render(). -->
+        <p id="globe-desc" class="sr-only" aria-live="polite"></p>
+      </section>
+
+      <!-- RIGHT: the point-location readouts and controls. -->
+      <section class="panel panel--controls app-layout__right" aria-labelledby="controls-heading">
+        <h2 id="controls-heading" class="panel__heading">point location</h2>
+
+        <div class="controls-inner">
+
+          <!-- Cursor location: readouts + keyboard sliders (equivalent to clicking the globe). -->
+          <fieldset class="control-fieldset">
+            <legend class="control-fieldset__legend">Cursor location</legend>
+
+            <div class="control-row coord-row">
+              <label class="control-row__label" for="lat-slider">latitude:</label>
+              <output id="lat-readout" class="coord-readout" for="lat-slider"></output>
+            </div>
+            <input type="range" id="lat-slider" class="control-row__slider sim-slider"
+                   min="-90" max="90" step="0.1" value="40.8"
+                   aria-describedby="lat-readout">
+
+            <div class="control-row coord-row">
+              <label class="control-row__label" for="lon-slider">longitude:</label>
+              <output id="lon-readout" class="coord-readout" for="lon-slider"></output>
+            </div>
+            <input type="range" id="lon-slider" class="control-row__slider sim-slider"
+                   min="-180" max="180" step="0.1" value="-96.7"
+                   aria-describedby="lon-readout">
+          </fieldset>
+
+          <!-- Coordinate format radio group (decimal vs sexagesimal degrees-minutes-seconds). -->
+          <fieldset class="control-fieldset">
+            <legend class="control-fieldset__legend">Coordinate format</legend>
+            <div class="format-choices">
+              <div class="control-choice">
+                <input type="radio" id="fmt-decimal" name="formatGroup" value="d" checked>
+                <label for="fmt-decimal">decimal</label>
+              </div>
+              <div class="control-choice">
+                <input type="radio" id="fmt-sexagesimal" name="formatGroup" value="s">
+                <label for="fmt-sexagesimal">sexagesimal</label>
+              </div>
+            </div>
+          </fieldset>
+
+          <div class="button-row sim-button-row">
+            <button type="button" id="google-btn" class="button">open Google Maps</button>
+          </div>
+
+          <!-- Globe orientation: keyboard equivalent of shift-dragging the globe. -->
+          <fieldset class="control-fieldset">
+            <legend class="control-fieldset__legend">Globe orientation</legend>
+
+            <div class="control-row coord-row">
+              <label class="control-row__label" for="rot-slider">rotation:</label>
+              <output id="rot-readout" class="coord-readout" for="rot-slider"></output>
+            </div>
+            <input type="range" id="rot-slider" class="control-row__slider sim-slider"
+                   min="0" max="360" step="1" value="290"
+                   aria-describedby="rot-readout">
+
+            <div class="control-row coord-row">
+              <label class="control-row__label" for="tilt-slider">tilt:</label>
+              <output id="tilt-readout" class="coord-readout" for="tilt-slider"></output>
+            </div>
+            <input type="range" id="tilt-slider" class="control-row__slider sim-slider"
+                   min="-90" max="90" step="1" value="25"
+                   aria-describedby="tilt-readout">
+          </fieldset>
+
+          <!-- Display options (match original "show cities" / "show features" checkboxes). -->
+          <fieldset class="control-fieldset">
+            <legend class="control-fieldset__legend">Display options</legend>
+            <div class="control-choice">
+              <input type="checkbox" id="show-cities">
+              <label for="show-cities">show cities</label>
+            </div>
+            <div class="control-choice">
+              <input type="checkbox" id="show-features">
+              <label for="show-features">show features</label>
+            </div>
+          </fieldset>
+
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- Polite live region for committed state changes (announced with units). -->
+  <p id="sr-status" class="sr-only" aria-live="polite"></p>
+
+  <!-- Foundation scripts (resolve to /foundation/... at the server root). -->
+  <script src="foundation/kl-unl-masthead.js"></script>
+  <script src="foundation/kl-unl.js"></script>
+  <script src="assets/shore-data.js"></script>
+  <script src="simulation.js"></script>
+</body>
+</html>
