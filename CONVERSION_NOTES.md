@@ -110,11 +110,14 @@ build should be vendored and wired through `klunlShowEquation`.
    is a solid black dot (radius ~5), city markers are `#666666` dots (radius ~3.5) that
    grow to radius ~4.5 on hover (the original's frame-2 highlight), exactly as measured
    from those renders.
-4. **Keyboard controls added.** The original only supported mouse click/drag. To make
-   the draggable cursor and the globe rotation keyboard-operable (WCAG 2.1.1), native
-   sliders were added for cursor latitude, cursor longitude, globe rotation, and globe
-   tilt. They mutate the same state object as the pointer paths, so mouse, touch, and
-   keyboard stay in sync.
+4. **Keyboard controls added.** The original only supported mouse click/drag. To make it
+   keyboard-operable (WCAG 2.1.1): the **globe canvas itself is focusable** and in the tab
+   order — arrow keys move the cursor location (Shift / Page Up-Down = 10° step), and
+   clicking the globe moves focus to it. Native **sliders** were also added for cursor
+   latitude/longitude and globe rotation/tilt, and the four value read-outs are **typable
+   fields** (enter a decimal, a `45 N` style value, or degrees-and-minutes; tolerant
+   parse with clamping). All paths mutate the same state object, so mouse, touch, and
+   keyboard stay in sync. (The original's latitude/longitude fields were display-only.)
 5. **Google Maps URL** uses `https` instead of the original `http` (the query string is
    otherwise byte-for-byte the original `openGoogle` pattern).
 6. **Layout** follows the KL-UNL shell (panels, classes, palette) rather than the Flash

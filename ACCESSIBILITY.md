@@ -26,14 +26,27 @@ Windows, VoiceOver on macOS/iOS) is still required before release.
 Everything is operable by keyboard in a logical tab order, with the foundation's visible
 `:focus-visible` ring. There are no keyboard traps.
 
-- The Flash original was mouse-only. Native **sliders** were added so the two draggable
-  behaviors are fully keyboard-operable, each using native `<input type="range">`
-  (Arrow = step, Page Up/Down = larger step, Home/End = min/max for free):
-  - **Cursor latitude** (−90…90) and **cursor longitude** (−180…180) — equivalent to
-    clicking/dragging the cursor on the globe.
-  - **Globe rotation** (0…360) and **globe tilt** (−90…90) — equivalent to shift-drag.
-- The pointer paths and the sliders mutate the **same** state object, so mouse, touch,
-  and keyboard never disagree. Sliders stay focusable; Tab always moves away cleanly.
+- The Flash original was mouse-only. Two complementary keyboard paths were added:
+  - **The globe canvas is itself focusable** (`tabindex="0"`, `role="application"`,
+    `aria-roledescription="interactive globe"`) and is in the tab order. When focused,
+    the **arrow keys move the cursor location** on the surface: Up/Down = latitude
+    north/south, Left/Right = longitude east/west; hold **Shift** (or use Page Up/Down
+    for latitude) for a larger 10° step. A clear focus ring is shown on keyboard focus.
+    **Clicking the globe moves focus to it**, so a pointer user can switch straight to
+    the arrow keys. Tab always moves away cleanly (no trap).
+  - Native **sliders** give explicit, standard per-axis control, each using
+    `<input type="range">` (Arrow = step, Page Up/Down = larger step, Home/End = min/max
+    for free): **cursor latitude** (−90…90) and **cursor longitude** (−180…180), plus
+    **globe rotation** (0…360) and **globe tilt** (−90…90), the keyboard equivalent of
+    shift-drag.
+  - **Typable value fields.** Each value (latitude, longitude, rotation, tilt) is a real
+    labelled `<input>` the user can type into and commit with Enter (or by tabbing away).
+    Parsing is tolerant: a signed decimal (`-45`), a value with a direction (`45 N`,
+    `96.7 W`), or degrees-and-minutes (`40 47 N`) all work; out-of-range values clamp and
+    unparseable text reverts to the current value. The field, its slider, the canvas, and
+    the live region all stay in sync because they share one state object.
+- The pointer paths, the canvas arrow keys, and the sliders all mutate the **same** state
+  object, so mouse, touch, and keyboard never disagree.
 - Radio group (coordinate format), checkboxes (show cities / show features), and the
   "open Google Maps" button are native controls.
 

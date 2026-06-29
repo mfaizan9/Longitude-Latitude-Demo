@@ -322,10 +322,10 @@
   const lonSlider = document.getElementById('lon-slider');
   const rotSlider = document.getElementById('rot-slider');
   const tiltSlider= document.getElementById('tilt-slider');
-  const latReadout= document.getElementById('lat-readout');
-  const lonReadout= document.getElementById('lon-readout');
-  const rotReadout= document.getElementById('rot-readout');
-  const tiltReadout=document.getElementById('tilt-readout');
+  const latField  = document.getElementById('lat-input');
+  const lonField  = document.getElementById('lon-input');
+  const rotField  = document.getElementById('rot-input');
+  const tiltField = document.getElementById('tilt-input');
   const fmtDecimal= document.getElementById('fmt-decimal');
   const fmtSex    = document.getElementById('fmt-sexagesimal');
   const showCities= document.getElementById('show-cities');
@@ -492,10 +492,11 @@
     drawLabel(ds.lat, az + 16, alt / 2, 1, COL.latLabel);
 
     // ---- DOM sync ---------------------------------------------------------
-    latReadout.textContent = ds.lat;
-    lonReadout.textContent = ds.lon;
-    rotReadout.textContent = Math.round(mod(state.thetaDeg, 360)) + "°";
-    tiltReadout.textContent = Math.round(state.phiDeg) + "°";
+    // Update typable fields, but never clobber one the user is editing.
+    setFieldSilently(latField, ds.lat);
+    setFieldSilently(lonField, ds.lon);
+    setFieldSilently(rotField, Math.round(mod(state.thetaDeg, 360)) + "°");
+    setFieldSilently(tiltField, Math.round(state.phiDeg) + "°");
 
     // keep sliders in sync without firing their input handlers
     setSliderSilently(latSlider, alt);
@@ -681,6 +682,7 @@
     const sp = pointerToSphere(ev);
     if (Math.sqrt(sp.x * sp.x + sp.y * sp.y) > R) { return; }  // outside disc
     try { canvas.setPointerCapture(ev.pointerId); } catch (e) { /* non-fatal */ }
+    canvas.focus();                       // clicking the globe moves focus to it
     ev.preventDefault();
     if (ev.shiftKey) {
       dragMode = 'rotate';
@@ -716,6 +718,33 @@
     if (!dragMode && hoverCity !== null) { hoverCity = null; updateCityCallout(); }
   });
 
+  // When the globe canvas is focused, arrow keys move the cursor location (the point
+  // on the surface). Up/Down = latitude north/south, Left/Right = longitude west/east;
+  // hold Shift (or use Page Up/Down for latitude) for a larger 10-degree step.
+  canvas.addEventListener('keydown', function (ev) {
+    const step = ev.shiftKey ? 10 : 1;
+    let alt = state.cursorAlt;
+    let lon = azToLon(state.cursorAz);      // signed longitude, East positive
+    let handled = true;
+    switch (ev.key) {
+      case 'ArrowUp':    alt += step; break;
+      case 'ArrowDown':  alt -= step; break;
+      case 'ArrowRight': lon += step; break;   // east
+      case 'ArrowLeft':  lon -= step; break;   // west
+      case 'PageUp':     alt += 10;   break;
+      case 'PageDown':   alt -= 10;   break;
+      default: handled = false;
+    }
+    if (!handled) { return; }                 // let Tab and other keys pass through
+    ev.preventDefault();
+    if (alt > 90) { alt = 90; } else if (alt < -90) { alt = -90; }   // clamp at poles
+    lon = ((lon + 180) % 360 + 360) % 360 - 180;                     // wrap longitude
+    state.cursorAlt = alt;
+    state.cursorAz = lonToAz(lon);
+    render();
+    announceCursor();
+  });
+
   // =========================================================================
   //  Keyboard / native controls
   // =========================================================================
@@ -724,6 +753,11 @@
     silentSlider = true;
     slider.value = value;
     silentSlider = false;
+  }
+
+  // Update a typable field's value, unless the user is currently editing it.
+  function setFieldSilently(field, text) {
+    if (document.activeElement !== field) { field.value = text; }
   }
 
   latSlider.addEventListener('input', function () {
@@ -756,6 +790,78 @@
   tiltSlider.addEventListener('change', function () {
     announce("Globe tilt " + Math.round(state.phiDeg) + " degrees.");
   });
+
+  // ---- typable value fields ------------------------------------------------
+  // Tolerant parse: pull the numeric tokens out of whatever the user typed.
+  // 1 token = decimal degrees; 2-3 tokens = degrees, minutes, seconds.
+  function parseAngle(str) {
+    const nums = (String(str).match(/-?\d+(?:\.\d+)?/g) || []).map(Number);
+    if (!nums.length) { return null; }
+    const mag = Math.abs(nums[0]) +
+                (nums.length > 1 ? Math.abs(nums[1]) / 60 : 0) +
+                (nums.length > 2 ? Math.abs(nums[2]) / 3600 : 0);
+    return { mag: mag, neg: nums[0] < 0 };
+  }
+
+  function commitLat() {
+    const p = parseAngle(latField.value);
+    if (p) {
+      let v = p.mag;
+      if (/s/i.test(latField.value)) { v = -v; }          // explicit south
+      else if (!/n/i.test(latField.value) && p.neg) { v = -v; }  // or a negative number
+      if (v > 90) { v = 90; } else if (v < -90) { v = -90; }     // clamp at the poles
+      state.cursorAlt = v;
+      render(); announceCursor();
+    }
+    latField.value = displayStrings(cursorStrings(state.cursorAz, state.cursorAlt)).lat;
+  }
+
+  function commitLon() {
+    const p = parseAngle(lonField.value);
+    if (p) {
+      let g = p.mag;                                       // East positive
+      if (/w/i.test(lonField.value)) { g = -g; }          // explicit west
+      else if (!/e/i.test(lonField.value) && p.neg) { g = -g; }  // or a negative number
+      g = ((g + 180) % 360 + 360) % 360 - 180;            // wrap to [-180, 180)
+      state.cursorAz = lonToAz(g);
+      render(); announceCursor();
+    }
+    lonField.value = displayStrings(cursorStrings(state.cursorAz, state.cursorAlt)).lon;
+  }
+
+  function commitRot() {
+    const p = parseAngle(rotField.value);
+    if (p) {
+      state.thetaDeg = mod(p.neg ? -p.mag : p.mag, 360);
+      render();
+      announce("Globe rotation " + Math.round(mod(state.thetaDeg, 360)) + " degrees.");
+    }
+    rotField.value = Math.round(mod(state.thetaDeg, 360)) + "°";
+  }
+
+  function commitTilt() {
+    const p = parseAngle(tiltField.value);
+    if (p) {
+      let t = p.neg ? -p.mag : p.mag;
+      if (t > 90) { t = 90; } else if (t < -90) { t = -90; }
+      state.phiDeg = t;
+      render();
+      announce("Globe tilt " + Math.round(state.phiDeg) + " degrees.");
+    }
+    tiltField.value = Math.round(state.phiDeg) + "°";
+  }
+
+  // Commit on Enter (keeps focus) and on blur ('change').
+  function wireField(field, commit) {
+    field.addEventListener('change', commit);
+    field.addEventListener('keydown', function (ev) {
+      if (ev.key === 'Enter') { ev.preventDefault(); commit(); field.select(); }
+    });
+  }
+  wireField(latField, commitLat);
+  wireField(lonField, commitLon);
+  wireField(rotField, commitRot);
+  wireField(tiltField, commitTilt);
 
   fmtDecimal.addEventListener('change', function () {
     if (fmtDecimal.checked) { state.format = 'd'; render(); announce("Decimal degrees."); }

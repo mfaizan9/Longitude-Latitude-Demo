@@ -59,6 +59,13 @@
   cursor: crosshair;
 }
 
+/* Clear keyboard-focus ring for the focusable globe (mouse clicks won't show it). */
+#globe-canvas:focus-visible {
+  outline: 0.2rem solid var(--outline-color, #005fcc);
+  outline-offset: 0.25rem;
+  border-radius: 4px;
+}
+
 .globe-instructions {
   font-style: italic;
 }
@@ -99,10 +106,21 @@
   margin-bottom: 0.15rem;
 }
 
-.coord-readout {
-  font-variant-numeric: tabular-nums;  /* digits line up */
+/* Typable value fields (latitude, longitude, rotation, tilt). All four share the
+   same size so equal-purpose fields look equal (consistent column). */
+.coord-input {
+  box-sizing: border-box;
+  width: 8rem;
+  font: inherit;
   font-weight: 600;
-  text-align: left;
+  font-variant-numeric: tabular-nums;  /* digits line up */
+  padding: 0.2rem 0.45rem;
+  color: var(--foreground-color, #1a1a1a);
+  background: var(--background-color, #ffffff);
+  border-width: var(--border-width, 1px);
+  border-style: var(--border-style, solid);
+  border-color: var(--border-color, #767676);
+  border-radius: 3px;
 }
 
 /* Sliders: full-width, comfortable touch target, consistent sizing. */

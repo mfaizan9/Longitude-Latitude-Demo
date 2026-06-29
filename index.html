@@ -24,8 +24,10 @@
         <div class="panel__canvas-wrap globe-wrap">
           <canvas id="globe-canvas"
                   width="440" height="400"
-                  role="img"
-                  aria-label="Interactive globe showing the cursor location"
+                  tabindex="0"
+                  role="application"
+                  aria-roledescription="interactive globe"
+                  aria-label="Globe. Use the arrow keys to move the cursor location; hold Shift for larger steps."
                   aria-describedby="globe-desc">
           </canvas>
           <!-- Floating city callout, shown over the globe on hover/focus of a city. -->
@@ -33,10 +35,12 @@
         </div>
         <p class="panel__help globe-instructions">
           Click on the globe to change the cursor location, or shift-click to change
-          the globe's orientation. Keyboard users can use the sliders in the controls panel.
+          the globe's orientation. Keyboard users can focus the globe and use the arrow
+          keys to move the cursor, or use the sliders in the controls panel.
         </p>
-        <!-- Text equivalent of the canvas, kept in sync from render(). -->
-        <p id="globe-desc" class="sr-only" aria-live="polite"></p>
+        <!-- Text equivalent of the canvas (current state), read when the globe is
+             focused. Live announcements go through the #sr-status region instead. -->
+        <p id="globe-desc" class="sr-only"></p>
       </section>
 
       <!-- RIGHT: the point-location readouts and controls. -->
@@ -48,22 +52,28 @@
           <!-- Cursor location: readouts + keyboard sliders (equivalent to clicking the globe). -->
           <fieldset class="control-fieldset">
             <legend class="control-fieldset__legend">Cursor location</legend>
+            <p id="coord-hint" class="sr-only">Type a coordinate and press Enter, for
+              example 45 N; a negative number means south or west.</p>
 
             <div class="control-row coord-row">
-              <label class="control-row__label" for="lat-slider">latitude:</label>
-              <output id="lat-readout" class="coord-readout" for="lat-slider"></output>
+              <label class="control-row__label" for="lat-input">latitude:</label>
+              <input type="text" id="lat-input" class="coord-input"
+                     autocomplete="off" spellcheck="false" enterkeyhint="done"
+                     aria-describedby="coord-hint">
             </div>
             <input type="range" id="lat-slider" class="control-row__slider sim-slider"
                    min="-90" max="90" step="0.1" value="40.8"
-                   aria-describedby="lat-readout">
+                   aria-label="Latitude (slider)">
 
             <div class="control-row coord-row">
-              <label class="control-row__label" for="lon-slider">longitude:</label>
-              <output id="lon-readout" class="coord-readout" for="lon-slider"></output>
+              <label class="control-row__label" for="lon-input">longitude:</label>
+              <input type="text" id="lon-input" class="coord-input"
+                     autocomplete="off" spellcheck="false" enterkeyhint="done"
+                     aria-describedby="coord-hint">
             </div>
             <input type="range" id="lon-slider" class="control-row__slider sim-slider"
                    min="-180" max="180" step="0.1" value="-96.7"
-                   aria-describedby="lon-readout">
+                   aria-label="Longitude (slider)">
           </fieldset>
 
           <!-- Coordinate format radio group (decimal vs sexagesimal degrees-minutes-seconds). -->
@@ -88,22 +98,27 @@
           <!-- Globe orientation: keyboard equivalent of shift-dragging the globe. -->
           <fieldset class="control-fieldset">
             <legend class="control-fieldset__legend">Globe orientation</legend>
+            <p id="orient-hint" class="sr-only">Type a number of degrees and press Enter.</p>
 
             <div class="control-row coord-row">
-              <label class="control-row__label" for="rot-slider">rotation:</label>
-              <output id="rot-readout" class="coord-readout" for="rot-slider"></output>
+              <label class="control-row__label" for="rot-input">rotation:</label>
+              <input type="text" id="rot-input" class="coord-input" inputmode="numeric"
+                     autocomplete="off" spellcheck="false" enterkeyhint="done"
+                     aria-describedby="orient-hint">
             </div>
             <input type="range" id="rot-slider" class="control-row__slider sim-slider"
                    min="0" max="360" step="1" value="290"
-                   aria-describedby="rot-readout">
+                   aria-label="Globe rotation (slider)">
 
             <div class="control-row coord-row">
-              <label class="control-row__label" for="tilt-slider">tilt:</label>
-              <output id="tilt-readout" class="coord-readout" for="tilt-slider"></output>
+              <label class="control-row__label" for="tilt-input">tilt:</label>
+              <input type="text" id="tilt-input" class="coord-input" inputmode="numeric"
+                     autocomplete="off" spellcheck="false" enterkeyhint="done"
+                     aria-describedby="orient-hint">
             </div>
             <input type="range" id="tilt-slider" class="control-row__slider sim-slider"
                    min="-90" max="90" step="1" value="25"
-                   aria-describedby="tilt-readout">
+                   aria-label="Globe tilt (slider)">
           </fieldset>
 
           <!-- Display options (match original "show cities" / "show features" checkboxes). -->
