@@ -803,71 +803,100 @@
     return { mag: mag, neg: nums[0] < 0 };
   }
 
-  function commitLat() {
-    const p = parseAngle(latField.value);
-    if (p) {
-      let v = p.mag;
-      if (/s/i.test(latField.value)) { v = -v; }          // explicit south
-      else if (!/n/i.test(latField.value) && p.neg) { v = -v; }  // or a negative number
-      if (v > 90) { v = 90; } else if (v < -90) { v = -90; }     // clamp at the poles
-      state.cursorAlt = v;
-      render(); announceCursor();
-    }
+  // Read the signed value currently shown in a field (null if unparseable).
+  function readLat() {
+    const p = parseAngle(latField.value); if (!p) { return null; }
+    let v = p.mag;
+    if (/s/i.test(latField.value)) { v = -v; }             // explicit south
+    else if (!/n/i.test(latField.value) && p.neg) { v = -v; }  // or a negative number
+    return v;
+  }
+  function readLon() {
+    const p = parseAngle(lonField.value); if (!p) { return null; }
+    let g = p.mag;                                          // East positive
+    if (/w/i.test(lonField.value)) { g = -g; }             // explicit west
+    else if (!/e/i.test(lonField.value) && p.neg) { g = -g; }  // or a negative number
+    return g;
+  }
+  function readRot()  { const p = parseAngle(rotField.value);  return p ? (p.neg ? -p.mag : p.mag) : null; }
+  function readTilt() { const p = parseAngle(tiltField.value); return p ? (p.neg ? -p.mag : p.mag) : null; }
+
+  // Apply a value (clamp/wrap), redraw, announce, and refresh the (focused) field.
+  function applyLat(v) {
+    if (v > 90) { v = 90; } else if (v < -90) { v = -90; }   // clamp at the poles
+    state.cursorAlt = v; render(); announceCursor();
     latField.value = displayStrings(cursorStrings(state.cursorAz, state.cursorAlt)).lat;
   }
-
-  function commitLon() {
-    const p = parseAngle(lonField.value);
-    if (p) {
-      let g = p.mag;                                       // East positive
-      if (/w/i.test(lonField.value)) { g = -g; }          // explicit west
-      else if (!/e/i.test(lonField.value) && p.neg) { g = -g; }  // or a negative number
-      g = ((g + 180) % 360 + 360) % 360 - 180;            // wrap to [-180, 180)
-      state.cursorAz = lonToAz(g);
-      render(); announceCursor();
-    }
+  function applyLon(g) {
+    g = ((g + 180) % 360 + 360) % 360 - 180;                 // wrap to [-180, 180)
+    state.cursorAz = lonToAz(g); render(); announceCursor();
     lonField.value = displayStrings(cursorStrings(state.cursorAz, state.cursorAlt)).lon;
   }
-
-  function commitRot() {
-    const p = parseAngle(rotField.value);
-    if (p) {
-      state.thetaDeg = mod(p.neg ? -p.mag : p.mag, 360);
-      render();
-      announce("Globe rotation " + Math.round(mod(state.thetaDeg, 360)) + " degrees.");
-    }
+  function applyRot(t) {
+    state.thetaDeg = mod(t, 360); render();
+    announce("Globe rotation " + Math.round(mod(state.thetaDeg, 360)) + " degrees.");
     rotField.value = Math.round(mod(state.thetaDeg, 360)) + "°";
   }
-
-  function commitTilt() {
-    const p = parseAngle(tiltField.value);
-    if (p) {
-      let t = p.neg ? -p.mag : p.mag;
-      if (t > 90) { t = 90; } else if (t < -90) { t = -90; }
-      state.phiDeg = t;
-      render();
-      announce("Globe tilt " + Math.round(state.phiDeg) + " degrees.");
-    }
+  function applyTilt(t) {
+    if (t > 90) { t = 90; } else if (t < -90) { t = -90; }
+    state.phiDeg = t; render();
+    announce("Globe tilt " + Math.round(state.phiDeg) + " degrees.");
     tiltField.value = Math.round(state.phiDeg) + "°";
   }
 
-  // Commit on Enter (keeps focus) and on blur ('change').
-  function wireField(field, commit) {
+  // Commit (Enter/blur): apply the typed value, or revert the field if unparseable.
+  function commitLat()  { const v = readLat();  if (v !== null) { applyLat(v); }  else { latField.value  = displayStrings(cursorStrings(state.cursorAz, state.cursorAlt)).lat; } }
+  function commitLon()  { const g = readLon();  if (g !== null) { applyLon(g); }  else { lonField.value  = displayStrings(cursorStrings(state.cursorAz, state.cursorAlt)).lon; } }
+  function commitRot()  { const t = readRot();  if (t !== null) { applyRot(t); }  else { rotField.value  = Math.round(mod(state.thetaDeg, 360)) + "°"; } }
+  function commitTilt() { const t = readTilt(); if (t !== null) { applyTilt(t); } else { tiltField.value = Math.round(state.phiDeg) + "°"; } }
+
+  // Step by a delta from the field's current value (or the committed state value).
+  function stepLat(d)  { let v = readLat();  if (v === null) { v = state.cursorAlt; }        applyLat(v + d); }
+  function stepLon(d)  { let g = readLon();  if (g === null) { g = azToLon(state.cursorAz); } applyLon(g + d); }
+  function stepRot(d)  { let t = readRot();  if (t === null) { t = state.thetaDeg; }          applyRot(t + d); }
+  function stepTilt(d) { let t = readTilt(); if (t === null) { t = state.phiDeg; }            applyTilt(t + d); }
+
+  // Wire a field: commit on Enter/blur; when the field is focused, Arrow Up/Down,
+  // Page Up/Down and the mouse wheel step the value (hold Shift for a 10-unit step).
+  function wireField(field, commit, step) {
     field.addEventListener('change', commit);
     field.addEventListener('keydown', function (ev) {
-      if (ev.key === 'Enter') { ev.preventDefault(); commit(); field.select(); }
+      if (ev.key === 'Enter') { ev.preventDefault(); commit(); field.select(); return; }
+      let d = 0;
+      if      (ev.key === 'ArrowUp')   { d =  (ev.shiftKey ? 10 : 1); }
+      else if (ev.key === 'ArrowDown') { d = -(ev.shiftKey ? 10 : 1); }
+      else if (ev.key === 'PageUp')    { d =  10; }
+      else if (ev.key === 'PageDown')  { d = -10; }
+      if (d !== 0) { ev.preventDefault(); step(d); }   // Left/Right still edit the text
     });
+    field.addEventListener('wheel', function (ev) {
+      if (document.activeElement !== field) { return; }  // only when the field is selected
+      ev.preventDefault();
+      step((ev.deltaY < 0 ? 1 : -1) * (ev.shiftKey ? 10 : 1));
+    }, { passive: false });
   }
-  wireField(latField, commitLat);
-  wireField(lonField, commitLon);
-  wireField(rotField, commitRot);
-  wireField(tiltField, commitTilt);
+  wireField(latField, commitLat, stepLat);
+  wireField(lonField, commitLon, stepLon);
+  wireField(rotField, commitRot, stepRot);
+  wireField(tiltField, commitTilt, stepTilt);
 
   fmtDecimal.addEventListener('change', function () {
     if (fmtDecimal.checked) { state.format = 'd'; render(); announce("Decimal degrees."); }
   });
   fmtSex.addEventListener('change', function () {
     if (fmtSex.checked) { state.format = 's'; render(); announce("Sexagesimal degrees, minutes."); }
+  });
+
+  // Each format radio is its own tab stop (tabindex="0" in the markup). Disable the
+  // native radio-group arrow-key navigation so arrow keys do nothing here -- the user
+  // tabs to a radio and presses Space to select it.
+  [fmtDecimal, fmtSex].forEach(function (r) {
+    r.addEventListener('keydown', function (ev) {
+      if (ev.key === 'ArrowUp' || ev.key === 'ArrowDown' ||
+          ev.key === 'ArrowLeft' || ev.key === 'ArrowRight') {
+        ev.preventDefault();
+      }
+    });
   });
 
   showCities.addEventListener('change', function () {

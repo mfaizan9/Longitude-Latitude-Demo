@@ -43,8 +43,11 @@ Everything is operable by keyboard in a logical tab order, with the foundation's
     labelled `<input>` the user can type into and commit with Enter (or by tabbing away).
     Parsing is tolerant: a signed decimal (`-45`), a value with a direction (`45 N`,
     `96.7 W`), or degrees-and-minutes (`40 47 N`) all work; out-of-range values clamp and
-    unparseable text reverts to the current value. The field, its slider, the canvas, and
-    the live region all stay in sync because they share one state object.
+    unparseable text reverts to the current value. While a field is focused it also acts
+    as a stepper — **Arrow Up/Down, Page Up/Down, and the mouse wheel** step the value
+    (hold **Shift** for a 10-unit step); Left/Right still edit the text normally. The
+    field, its slider, the canvas, and the live region all stay in sync because they share
+    one state object.
 - The pointer paths, the canvas arrow keys, and the sliders all mutate the **same** state
   object, so mouse, touch, and keyboard never disagree.
 - Radio group (coordinate format), checkboxes (show cities / show features), and the
