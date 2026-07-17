@@ -887,14 +887,26 @@
     if (fmtSex.checked) { state.format = 's'; render(); announce("Sexagesimal degrees, minutes."); }
   });
 
-  // Each format radio is its own tab stop (tabindex="0" in the markup). Disable the
-  // native radio-group arrow-key navigation so arrow keys do nothing here -- the user
-  // tabs to a radio and presses Space to select it.
+  // Coordinate-format radios: each is its OWN tab stop, and Space (not arrows) turns
+  // one on. Tab -> decimal, Tab -> sexagesimal (focus only); Space -> turn on the
+  // focused radio and turn the other off. This is handled explicitly so it never
+  // depends on native radio-group roving/arrow behavior.
   [fmtDecimal, fmtSex].forEach(function (r) {
+    r.tabIndex = 0;                                   // ensure both are tab stops
     r.addEventListener('keydown', function (ev) {
+      // Disable the native arrow-key navigation between radios.
       if (ev.key === 'ArrowUp' || ev.key === 'ArrowDown' ||
           ev.key === 'ArrowLeft' || ev.key === 'ArrowRight') {
         ev.preventDefault();
+        return;
+      }
+      // Space turns on the focused radio (unchecking its sibling in the group).
+      if (ev.key === ' ' || ev.key === 'Spacebar' || ev.code === 'Space') {
+        ev.preventDefault();
+        if (!r.checked) {
+          r.checked = true;                           // unchecks the other radio
+          r.dispatchEvent(new Event('change', { bubbles: true }));
+        }
       }
     });
   });
